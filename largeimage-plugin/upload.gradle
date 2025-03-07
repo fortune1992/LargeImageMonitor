@@ -1,16 +1,50 @@
-apply plugin: 'com.novoda.bintray-release'
-//gradlew clean build bintrayUpload -PbintrayUser=BINTRAY_USERNAME -PbintrayKey=BINTRAY_KEY -PdryRun=false
-publish {
-    def groupProjectID = 'org.zzy.largeimage'
-    def artifactProjectID = 'large-image-monitor-plugin'
-    def publishVersionID = "${rootProject.ext.android["pluginVersionName"]}"
+apply plugin: 'maven-publish'
 
-    userOrg = 'zzy'
-    repoName = "imageMonitor"
-    groupId = groupProjectID
-    artifactId = artifactProjectID
-    publishVersion = publishVersionID
-    desc = 'Oh hi, this is a library which can be monitor large image.'
-    website = 'https://github.com/121880399/LargeImageMonitor'
+def hasAndroidPlugin() {
+    return getPlugins().hasPlugin("com.android.application") || getPlugins().hasPlugin("com.android.library")
+}
+
+task sourcesJar(type: Jar) {
+    if (hasAndroidPlugin()) {
+        group = 'jar'
+        from android.sourceSets.main.java.getSrcDirs()
+        classifier = 'sources'
+    } else {
+        from sourceSets.main.allSource
+        archiveClassifier = 'sources'
+    }
+}
+
+afterEvaluate {
+    publishing {
+        repositories {
+            maven {
+                url = uri("$rootDir/repo")
+//                url = repositoryUrl
+//                credentials {
+//                    username = 'admin'
+//                    password = 'admin123'
+//                }
+            }
+        }
+        publications {
+            release(MavenPublication) {
+                if (hasAndroidPlugin()) {
+                    from components.release
+                } else {
+                    from components.java
+                }
+
+                def groupProjectID = 'org.zzy.largeimage'
+                def artifactProjectID = 'large-image-monitor-plugin'
+                def publishVersionID = "${rootProject.ext.android["pluginVersionName"]}"
+
+                artifact sourcesJar
+                groupId = groupProjectID
+                artifactId = artifactProjectID
+                version = publishVersionID
+            }
+        }
+    }
 }
 

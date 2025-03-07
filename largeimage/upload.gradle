@@ -1,16 +1,50 @@
-apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'maven-publish'
 
-publish {
+def hasAndroidPlugin() {
+    return getPlugins().hasPlugin("com.android.application") || getPlugins().hasPlugin("com.android.library")
+}
 
-    def groupProjectID = 'org.zzy.lib.largeimage'
-    def artifactProjectID = 'large-image-monitor'
-    def publishVersionID = "${rootProject.ext.android["jcenterArchivesVersionName"]}"
+task sourcesJar(type: Jar) {
+    if (hasAndroidPlugin()) {
+        group = 'jar'
+        from android.sourceSets.main.java.getSrcDirs()
+        classifier = 'sources'
+    } else {
+        from sourceSets.main.allSource
+        archiveClassifier = 'sources'
+    }
+}
 
-    userOrg = 'zzy'
-    repoName = "imageMonitor"
-    groupId = groupProjectID
-    artifactId = artifactProjectID
-    publishVersion = publishVersionID
-    desc = 'Oh hi, this is a library which can be monitor large image.'
-    website = 'https://github.com/121880399/LargeImageMonitor'
+afterEvaluate {
+    publishing {
+        repositories {
+            maven {
+                url = uri("$rootDir/repo")
+//                url = repositoryUrl
+//                credentials {
+//                    username = 'admin'
+//                    password = 'admin123'
+//                }
+            }
+        }
+        publications {
+            release(MavenPublication) {
+                if (hasAndroidPlugin()) {
+                    from components.release
+                } else {
+                    from components.java
+                }
+
+                def groupProjectID = 'org.zzy.lib.largeimage'
+                def artifactProjectID = 'large-image-monitor'
+                def publishVersionID = "${rootProject.ext.android["jcenterArchivesVersionName"]}"
+
+
+                artifact sourcesJar
+                groupId = groupProjectID
+                artifactId = artifactProjectID
+                version = publishVersionID
+            }
+        }
+    }
 }
